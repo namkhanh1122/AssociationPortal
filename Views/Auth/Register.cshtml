@@ -1,0 +1,147 @@
+@{
+    ViewData["Title"] = "Đăng Kí Thành Viên";
+}
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Đăng Ký"; 
+}
+
+
+<link rel="stylesheet" href="~/css/site.css" />
+
+<div class="register-container">
+    <h2>Đăng Kí</h2>
+
+    <form id="registerForm">
+        <div class="form-group">
+            <input type="text" id="fullName" placeholder="Họ và tên" required />
+        </div>
+
+        <div class="form-group">
+            <input type="email" id="email" placeholder="Email" required />
+        </div>
+
+        <div class="form-group">
+            <input type="text" id="phoneNumber" placeholder="Số điện thoại (tùy chọn)" />
+        </div>
+
+        <div class="form-group password-field">
+            <input type="password" id="password" placeholder="Mật khẩu" required />
+            <button type="button" id="togglePassword" class="toggle-btn">👁️</button>
+        </div>
+
+        <div class="form-group">
+            <input type="password" id="confirmPassword" placeholder="Nhập lại mật khẩu" required />
+        </div>
+
+        <button type="submit" class="btn-submit">Đăng Ký</button>
+    </form>
+
+    <p id="message" class="message"></p>
+</div>
+
+<style>
+    .register-container {
+        width: 400px;
+        margin: 40px auto;
+        background: #fff;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    h2 {
+        color: #007acc;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+        position: relative;
+    }
+
+    input[type="text"], input[type="email"], input[type="password"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        outline: none;
+    }
+
+    .btn-submit {
+        width: 100%;
+        padding: 10px;
+        background-color: #4ec3e0;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .btn-submit:hover {
+        background-color: #3daac7;
+    }
+
+    .toggle-btn {
+        position: absolute;
+        right: 10px;
+        top: 8px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+    }
+
+    .message {
+        margin-top: 15px;
+        color: #007acc;
+    }
+</style>
+
+<script>
+    // Hiện/ẩn mật khẩu
+    document.getElementById("togglePassword").addEventListener("click", function () {
+        const passwordInput = document.getElementById("password");
+        passwordInput.type = passwordInput.type === "password" ? "text" : "password";
+    });
+
+    // Xử lý đăng ký
+    document.getElementById("registerForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const password = document.getElementById("password").value;
+        const confirmPassword = document.getElementById("confirmPassword").value;
+
+        if (password !== confirmPassword) {
+            document.getElementById("message").textContent = "Mật khẩu không khớp!";
+            document.getElementById("message").style.color = "red";
+            return;
+        }
+
+        const data = {
+            FullName: document.getElementById("fullName").value,
+            Email: document.getElementById("email").value,
+            PhoneNumber: document.getElementById("phoneNumber").value,
+            PasswordHash: password
+        };
+
+        const response = await fetch("/auth/register", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            document.getElementById("message").textContent = result.message;
+            document.getElementById("message").style.color = "green";
+            document.getElementById("registerForm").reset();
+        } else {
+            document.getElementById("message").textContent = result.message;
+            document.getElementById("message").style.color = "red";
+        }
+    });
+</script>

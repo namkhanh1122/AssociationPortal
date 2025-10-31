@@ -1,5 +1,10 @@
+/* =======================================
+   BASE FONT & GLOBAL SETTINGS
+======================================= */
 html {
   font-size: 14px;
+  position: relative;
+  min-height: 100%;
 }
 
 @media (min-width: 768px) {
@@ -8,24 +13,139 @@ html {
   }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+body {
+  font-family: "Segoe UI", sans-serif;
+  margin: 0;
+  background-color: #fdfdfd;
+  margin-bottom: 60px;
+  color: #333;
+}
+
+/* =======================================
+   FORM & BUTTON FOCUS STYLES
+======================================= */
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
-html {
-  position: relative;
-  min-height: 100%;
-}
-
-body {
-  margin-bottom: 60px;
-}
-
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+.form-floating > .form-control-plaintext::placeholder,
+.form-floating > .form-control::placeholder {
   color: var(--bs-secondary-color);
   text-align: end;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+.form-floating > .form-control-plaintext:focus::placeholder,
+.form-floating > .form-control:focus::placeholder {
   text-align: start;
+}
+
+/* =======================================
+   HEADER & NAVBAR
+======================================= */
+header {
+  background-color: #ffffff;
+}
+
+header img {
+  height: 55px;
+  transition: transform 0.2s ease-in-out;
+}
+.navbar-brand img {
+  height: 120px !important ;
+  width: auto;
+  transition: transform 0.2s ease-in-out;
+}
+.logo-img {
+  height: 500px !important;
+  width: auto !important;
+  padding: 150px 20px;
+  object-fit: contain;
+}
+
+header img:hover {
+  transform: scale(1.05);
+}
+
+header h4 {
+  color: #a3d4f3;
+  padding: 20px 40px;
+  font-weight: bold;
+}
+
+.navbar-nav .nav-link {
+  color: #0f4468 !important;
+  font-weight: 500;
+  padding: 2px 4px;
+  transition: 0.3s;
+}
+
+.navbar-nav .nav-link:hover {
+  color: #96c3f4 !important;
+}
+
+/* =======================================
+   BANNER SECTION
+======================================= */
+.banner {
+  background: linear-gradient(rgba(15, 68, 104, 0.8), rgba(15, 68, 104, 0.8)),
+    url("https://png.pngtree.com/thumb_back/fh260/background/20190221/ourmid/pngtree-technology-business-line-ppt-background-image_18886.jpg")
+      center/cover no-repeat;
+  color: #fff;
+  text-align: center;
+  padding: 60px 0;
+  min-height: 280px;
+}
+
+.banner h5,
+.banner h6 {
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.3);
+}
+.banner-logo img {
+  border-radius: 12px; /* tùy chọn: bo góc logo */
+}
+
+.banner ul {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+}
+
+/* =======================================
+   FOOTER
+======================================= */
+footer {
+  background-color: #f8f9fa;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+footer a {
+  color: #0f4468;
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+/* =======================================
+   RESPONSIVE TWEAKS
+======================================= */
+@media (max-width: 576px) {
+  .banner {
+    padding: 40px 10px;
+    font-size: 0.9rem;
+  }
+
+  .nav-link {
+    padding: 8px !important;
+  }
+
+  footer {
+    font-size: 0.85rem;
+  }
 }
