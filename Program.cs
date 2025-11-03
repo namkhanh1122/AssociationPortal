@@ -43,6 +43,9 @@ builder.Services.AddAuthentication(options =>
 //  Thêm Authorization để phân quyền
 builder.Services.AddAuthorization();
 
+builder.Services.AddScoped<PermissionService>();
+
+
 var app = builder.Build();
 
 //  Configure HTTP request pipeline

@@ -9,6 +9,8 @@ using AssociationPortal.Data;
 using AssociationPortal.Helpers;
 using AssociationPortal.Models;
 using AssociationPortal.Models.Auth;
+using System.IdentityModel.Tokens.Jwt;
+
 
 namespace AssociationPortal.Controllers
 {
@@ -66,7 +68,7 @@ namespace AssociationPortal.Controllers
             if (member == null)
                 return BadRequest(new { message = "Email không tồn tại." });
 
-            if (PasswordHelper.VerifyPassword(req.Password, member.PasswordHash))
+            if (!PasswordHelper.VerifyPassword(req.Password, member.PasswordHash))
                 return BadRequest(new { message = "Sai mật khẩu." });
 
             // Lấy quyền
@@ -101,6 +103,7 @@ namespace AssociationPortal.Controllers
             {
                 message = "Đăng nhập thành công!",
                 token = jwtToken,
+                memberId = member.MemberId,
                 fullName = member.FullName,
                 permissions
             });

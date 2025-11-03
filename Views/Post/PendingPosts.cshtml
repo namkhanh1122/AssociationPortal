@@ -39,42 +39,72 @@
 
 @section Scripts {
 <script>
+    // Lấy token từ localStorage (đã lưu khi đăng nhập)
+    const token = localStorage.getItem("jwtToken");
+
     // Load danh sách bài viết chờ duyệt
     async function loadPendingPosts() {
-        const res = await fetch('/post/pending');
-        const data = await res.json();
+        try {
+            const res = await fetch('/post/pending');
+            const data = await res.json();
 
-        const tbody = document.querySelector('#pendingTable tbody');
-        tbody.innerHTML = '';
+            const tbody = document.querySelector('#pendingTable tbody');
+            tbody.innerHTML = '';
 
-        data.forEach(p => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${p.postTitle}</td>
-                <td>${p.authorName}</td>
-                <td>${p.categoryName}</td>
-                <td>${new Date(p.createdAt).toLocaleString()}</td>
-                <td>
-                    <button class="btn btn-success btn-sm" onclick="approvePost(${p.postId}, true)">Duyệt</button>
-                    <button class="btn btn-danger btn-sm" onclick="openRejectModal(${p.postId})">Từ chối</button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
+            data.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${p.postTitle}</td>
+                    <td>${p.authorName}</td>
+                    <td>${p.categoryName}</td>
+                    <td>${new Date(p.createdAt).toLocaleString()}</td>
+                    <td>
+                        <button class="btn btn-success btn-sm" onclick="approvePost(${p.postId}, true)">Duyệt</button>
+                        <button class="btn btn-danger btn-sm" onclick="openRejectModal(${p.postId})">Từ chối</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (err) {
+            alert("Lỗi tải danh sách: " + err.message);
+        }
     }
 
-    // Duyệt bài
-    async function approvePost(postId, approve) {
-        const formData = new FormData();
-        formData.append("postId", postId);
-        formData.append("approve", approve);
+    // Gửi request duyệt hoặc từ chối bài viết
+    async function approvePost(postId, approve, reason = null) {
+        try {
+            const url = `/post/approve?postId=${postId}&approve=${approve}${reason ? `&reason=${encodeURIComponent(reason)}` : ''}`;
 
-        await fetch(`/post/approve?postId=${postId}&approve=${approve}`, {
-            method: 'POST'
-        });
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
 
-        alert("Đã duyệt bài viết!");
-        loadPendingPosts();
+            if (res.status === 401) {
+                alert("Vui lòng đăng nhập lại!");
+                window.location.href = '/auth/login';
+                return;
+            }
+
+            if (res.status === 403) {
+                alert("Bạn không có quyền duyệt bài viết!");
+                return;
+            }
+
+            if (!res.ok) {
+                const errData = await res.json();
+                alert("Lỗi: " + (errData.message || 'Không xác định'));
+                return;
+            }
+
+            const data = await res.json();
+            alert(data.message);
+            loadPendingPosts();
+        } catch (err) {
+            alert("Lỗi khi duyệt bài: " + err.message);
+        }
     }
 
     // Mở modal từ chối
@@ -86,18 +116,20 @@
     // Xác nhận từ chối
     document.getElementById('confirmReject').addEventListener('click', async () => {
         const postId = document.getElementById('rejectPostId').value;
-        const reason = document.getElementById('rejectReason').value;
+        const reason = document.getElementById('rejectReason').value.trim();
 
-        await fetch(`/post/approve?postId=${postId}&approve=false&reason=${encodeURIComponent(reason)}`, {
-            method: 'POST'
-        });
+        if (!reason) {
+            alert("Vui lòng nhập lý do từ chối!");
+            return;
+        }
 
-        alert("Đã từ chối bài viết!");
+        await approvePost(postId, false, reason);
+
         document.getElementById('rejectReason').value = '';
         bootstrap.Modal.getInstance(document.getElementById('rejectModal')).hide();
-        loadPendingPosts();
     });
 
+    // Gọi lần đầu
     loadPendingPosts();
 </script>
 }

@@ -25,5 +25,8 @@ namespace AssociationPortal.Data
         public DbSet<Document> Documents { get; set; }
         
         public DbSet<Event> Events { get; set; }
+
+        public DbSet<PermissionResult> PermissionResults { get; set; }
+
     }
 }

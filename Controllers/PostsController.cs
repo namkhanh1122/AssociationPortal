@@ -3,6 +3,8 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using AssociationPortal.Data;
 using AssociationPortal.Models;
+using System.IdentityModel.Tokens.Jwt;
+
 
 namespace AssociationPortal.Controllers
 {
@@ -11,9 +13,13 @@ namespace AssociationPortal.Controllers
     {
         private readonly ApplicationDbContext _context;
 
-        public PostController(ApplicationDbContext context)
+        private readonly PermissionService _permissionService;
+
+        public PostController(ApplicationDbContext context,PermissionService permissionService)
         {
             _context = context;
+            _permissionService = permissionService;
+
         }
 
         //  Trang đăng bài (hiển thị form)
@@ -47,27 +53,54 @@ namespace AssociationPortal.Controllers
         }
 
         //  Xử lý đăng bài (qua AJAX)
-        [HttpPost("createpost")]
-        public async Task<IActionResult> CreatePost([FromBody] Post model)
+     [HttpPost("createpost")]
+public async Task<IActionResult> CreatePost([FromBody] Post model)
+{
+    try
+    {
+        // --- Lấy JWT từ Header Authorization ---
+        var authHeader = Request.Headers["Authorization"].ToString();
+        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+            return Unauthorized(new { message = "Thiếu token xác thực!" });
+
+        var token = authHeader.Substring("Bearer ".Length).Trim();
+
+        // --- Giải mã token để lấy memberId ---
+        var handler = new JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(token);
+        var memberIdClaim = jwt.Claims.FirstOrDefault(c => c.Type == "memberId");
+
+        if (memberIdClaim == null)
+            return Unauthorized(new { message = "Token không hợp lệ!" });
+
+        var memberId = long.Parse(memberIdClaim.Value);
+
+        // --- Kiểm tra dữ liệu ---
+        if (string.IsNullOrWhiteSpace(model.PostTitle) || string.IsNullOrWhiteSpace(model.PostContent))
+            return BadRequest(new { message = "Vui lòng nhập đầy đủ tiêu đề và nội dung!" });
+
+        // --- Gọi stored procedure ---
+        var parameters = new[]
         {
-            if (string.IsNullOrWhiteSpace(model.PostTitle) || string.IsNullOrWhiteSpace(model.PostContent))
-                return BadRequest(new { message = "Vui lòng nhập đầy đủ tiêu đề và nội dung!" });
+            new SqlParameter("@MemberId", memberId), // ✅ gán tự động từ token
+            new SqlParameter("@CategoryId", model.CategoryId ?? (object)DBNull.Value),
+            new SqlParameter("@Title", model.PostTitle),
+            new SqlParameter("@Content", model.PostContent),
+            new SqlParameter("@ThumbnailUrl", model.PostThumbnailUrl ?? (object)DBNull.Value)
+        };
 
-            var parameters = new[]
-            {
-                new SqlParameter("@MemberId", model.MemberId),
-                new SqlParameter("@CategoryId", model.CategoryId ?? (object)DBNull.Value),
-                new SqlParameter("@Title", model.PostTitle),
-                new SqlParameter("@Content", model.PostContent),
-                new SqlParameter("@ThumbnailUrl", model.PostThumbnailUrl ?? (object)DBNull.Value)
-            };
+        await _context.Database.ExecuteSqlRawAsync(
+            "EXEC sp_add_post @MemberId, @CategoryId, @Title, @Content, @ThumbnailUrl",
+            parameters
+        );
 
-            await _context.Database.ExecuteSqlRawAsync(
-                "EXEC sp_add_post @MemberId, @CategoryId, @Title, @Content, @ThumbnailUrl",
-                parameters);
-
-            return Ok(new { message = "Bài viết của bạn đã được gửi và đang chờ duyệt!" });
-        }
+        return Ok(new { message = "Bài viết của bạn đã được gửi và đang chờ duyệt!" });
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, new { message = "Lỗi server: " + ex.Message });
+    }
+}
 
         // API: Lấy danh sách bài viết chờ duyệt
         [HttpGet("pending")]
@@ -93,26 +126,58 @@ namespace AssociationPortal.Controllers
 
         //  API: Duyệt hoặc từ chối bài viết
         [HttpPost("approve")]
-        public async Task<IActionResult> ApprovePost(long postId, bool approve, string? reason = null)
+public async Task<IActionResult> ApprovePost(long postId, bool approve, string? reason = null)
+{
+    try
+    {
+        // --- Lấy JWT từ Header ---
+        var authHeader = Request.Headers["Authorization"].ToString();
+        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+            return Unauthorized(new { message = "Thiếu token xác thực!" });
+
+        var token = authHeader.Substring("Bearer ".Length).Trim();
+
+        var handler = new JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(token);
+        var memberIdClaim = jwt.Claims.FirstOrDefault(c => c.Type == "memberId");
+
+        if (memberIdClaim == null)
+            return Unauthorized(new { message = "Token không hợp lệ!" });
+
+        var memberId = long.Parse(memberIdClaim.Value);
+
+        // --- Check quyền Duyệt bài viết ---
+        var permissions = await _permissionService.GetPermissionsByMemberIdAsync(memberId);
+        if (!permissions.Contains(200) && !permissions.Contains(301)) 
         {
-            var post = await _context.Posts.FindAsync(postId);
-            if (post == null)
-                return NotFound();
-
-            if (approve)
-            {
-                post.ApprovedStatus = 1; // Approved
-                post.ApprovedDate = DateTime.Now;
-            }
-            else
-            {
-                post.ApprovedStatus = 2; // Rejected
-                post.RejectedReason = reason ?? "Không có lý do";
-            }
-
-            await _context.SaveChangesAsync();
-            return Ok(new { message = approve ? "Bài viết đã được duyệt!" : "Bài viết đã bị từ chối!" });
+            return StatusCode(403, new { message = "Bạn không có quyền duyệt bài viết!" });
         }
+
+        // --- Tìm bài viết ---
+        var post = await _context.Posts.FindAsync(postId);
+        if (post == null)
+            return NotFound();
+
+        if (approve)
+        {
+            post.ApprovedStatus = 1;
+            post.ApprovedDate = DateTime.Now;
+        }
+        else
+        {
+            post.ApprovedStatus = 2;
+            post.RejectedReason = reason ?? "Không có lý do";
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(new { message = approve ? "Bài viết đã được duyệt!" : "Bài viết đã bị từ chối!" });
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, new { message = "Lỗi server: " + ex.Message });
+    }
+}
+
             // Lấy danh sách bài viết đã duyệt (hiển thị ở trang Tin Tức)
         [HttpGet("approved")]
         public async Task<IActionResult> GetApprovedPosts()
