@@ -3,6 +3,7 @@
     ViewData["Title"] = "Đăng Nhập"; 
 }
 <link rel="stylesheet" href="~/css/site.css" />
+
 <div class="container mt-5" style="max-width: 420px;">
     <h3 class="text-center mb-4 text-primary fw-bold">Đăng nhập</h3>
 
@@ -24,7 +25,6 @@
 
         <button type="submit" class="btn btn-primary w-100">Đăng nhập</button>
 
-        <!-- Dòng hiển thị "Chưa có tài khoản?" -->
         <div class="text-center mt-3">
             <span>Chưa có tài khoản?</span>
             <a href="/auth/register" class="text-decoration-none fw-bold text-primary">Đăng ký</a>
@@ -35,38 +35,47 @@
 </div>
 
 <script>
-    // Xử lý ẩn/hiện mật khẩu
+
     document.getElementById("togglePassword").addEventListener("click", function () {
-        const passwordField = document.getElementById("password");
-        const type = passwordField.getAttribute("type") === "password" ? "text" : "password";
-        passwordField.setAttribute("type", type);
+        const field = document.getElementById("password");
+        const type = field.type === "password" ? "text" : "password";
+        field.type = type;
         this.textContent = type === "password" ? "👁️" : "🙈";
     });
 
-    // Gửi request đăng nhập bằng AJAX
+
     document.getElementById("loginForm").addEventListener("submit", async function (e) {
         e.preventDefault();
 
-        const email = document.getElementById("email").value;
+        const email = document.getElementById("email").value.trim().toLowerCase();
         const password = document.getElementById("password").value;
-
-        const response = await fetch("/auth/login", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ email: email, passwordHash: password })
-        });
-
         const msgBox = document.getElementById("message");
+        msgBox.innerHTML = `<div class="alert alert-info">Đang đăng nhập...</div>`;
 
-        if (response.ok) {
-            const data = await response.json();
-            msgBox.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
-            setTimeout(() => window.location.href = "/", 1200);
-        } else {
-            const err = await response.json();
-            msgBox.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+        try {
+            const res = await fetch("/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: email,
+                    Password: password  
+                })
+            });
+
+            const data = await res.json();  
+
+            if (res.ok) {
+                localStorage.setItem("jwtToken", data.token || "");
+                localStorage.setItem("fullName", data.fullName || "Người dùng");
+                msgBox.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                setTimeout(() => location.href = "/", 1200);
+            } else {
+                msgBox.innerHTML = `<div class="alert alert-danger">${data.message || "Đăng nhập thất bại!"}</div>`;
+            }
+        } catch (err) {
+            
+            console.error("Lỗi kết nối:", err);
+            msgBox.innerHTML = `<div class="alert alert-danger">Lỗi server! Vui lòng thử lại.</div>`;
         }
     });
 </script>

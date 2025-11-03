@@ -1,72 +1,115 @@
 using Microsoft.AspNetCore.Mvc;
-using AssociationPortal.Data;
-using AssociationPortal.Models;
-using AssociationPortal.Helpers;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Logging;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using AssociationPortal.Data;
+using AssociationPortal.Helpers;
+using AssociationPortal.Models;
+using AssociationPortal.Models.Auth;
 
 namespace AssociationPortal.Controllers
 {
     [Route("auth")]
+    [ApiController]
     public class AuthController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(ApplicationDbContext context)
+        public AuthController(ApplicationDbContext context, IConfiguration configuration, ILogger<AuthController> logger)
         {
             _context = context;
+            _configuration = configuration;
+            _logger = logger;
         }
 
+        // === REGISTER ===
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] Member model)
+        public async Task<IActionResult> Register([FromBody] RegisterRequest req)
         {
-            if (_context.Members.Any(x => x.Email == model.Email))
-                return BadRequest(new { message = "Email already exists" });
+            if (string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.Password))
+                return BadRequest(new { message = "Thiếu thông tin đăng ký." });
 
-            var newMember = new Member
+            if (await _context.Members.AnyAsync(x => x.Email == req.Email))
+                return BadRequest(new { message = "Email đã tồn tại." });
+
+            var member = new Member
             {
-                FullName = model.FullName,
-                Email = model.Email,
-                PhoneNumber = model.PhoneNumber,
-                PasswordHash = PasswordHelper.HashPassword(model.PasswordHash),
+                FullName = req.FullName,
+                Email = req.Email.ToLower().Trim(),
+                PhoneNumber = req.PhoneNumber,
+                PasswordHash = PasswordHelper.HashPassword(req.Password),
                 CreatedAt = DateTime.Now
             };
 
-            _context.Members.Add(newMember);
+            _context.Members.Add(member);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Registration successful" });
+            return Ok(new { message = "Đăng ký thành công!" });
         }
-        [HttpGet("register")]
-        public IActionResult Register()
-        {
-        return View();
-        }
+
+        // === LOGIN ===
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] Member member)
-            {
-                var existingMember = await _context.Members
-                .FirstOrDefaultAsync(m => m.Email == member.Email);
+        public async Task<IActionResult> Login([FromBody] LoginRequest req)
+        {
+            _logger.LogInformation("=== LOGIN REQUEST === Email={Email}", req.Email);
 
-                if (existingMember == null)
-                {
+            if (string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.Password))
+                return BadRequest(new { message = "Thiếu email hoặc mật khẩu." });
+
+            var member = await _context.Members.FirstOrDefaultAsync(m => m.Email == req.Email.ToLower());
+
+            if (member == null)
                 return BadRequest(new { message = "Email không tồn tại." });
-                }
 
-                if (PasswordHelper.VerifyPassword(member.PasswordHash, existingMember.PasswordHash)) 
-                {
-                    return BadRequest(new { message = "Sai mật khẩu." });
-                }
+            if (PasswordHelper.VerifyPassword(req.Password, member.PasswordHash))
+                return BadRequest(new { message = "Sai mật khẩu." });
 
-                return Ok(new { message = "Đăng nhập thành công!" });
-                }
-        [HttpGet("login")]
-            public IActionResult Login()
+            // Lấy quyền
+            var permissions = await (from mp in _context.MemberPermisions
+                                     join pd in _context.PermisionDetails on mp.PermisionId equals pd.PermisionId
+                                     where mp.MemberId == member.MemberId && mp.Licensed == 1
+                                     select pd.ActionCode.ToString()).ToListAsync();
+
+            // JWT claims
+            var claims = new List<Claim>
             {
-                return View();
-            }
+                new Claim("memberId", member.MemberId.ToString()),
+                new Claim(ClaimTypes.Email, member.Email),
+                new Claim("permissions", string.Join(",", permissions))
+            };
 
+            var jwtSettings = _configuration.GetSection("Jwt");
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: jwtSettings["Issuer"],
+                audience: jwtSettings["Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(int.Parse(jwtSettings["ExpiryMinutes"])),
+                signingCredentials: creds
+            );
+
+            var jwtToken = new JwtSecurityTokenHandler().WriteToken(token);
+
+            return Ok(new
+            {
+                message = "Đăng nhập thành công!",
+                token = jwtToken,
+                fullName = member.FullName,
+                permissions
+            });
+        }
+
+        [HttpGet("register")]
+        public IActionResult RegisterView() => View("Register");
+
+        [HttpGet("login")]
+        public IActionResult LoginView() => View("Login");
     }
 }

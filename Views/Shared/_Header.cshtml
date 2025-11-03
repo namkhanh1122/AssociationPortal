@@ -3,13 +3,11 @@
     <div class="text-center py-3 bg-light d-flex align-items-center justify-content-center position-relative">
         <!-- Logo + Danh mục bên trái -->
         <div class="position-absolute start-0 ms-3 d-flex align-items-center">
-            <!-- Logo -->
             <a asp-controller="Home" asp-action="Index" class="me-3">
-                <img src="~/images/Logo.png" alt="Logo" class="logo-img" >
+                <img src="~/images/Logo.png" alt="Logo" class="logo-img">
             </a>
         </div>
 
-        <!-- Tiêu đề trung tâm -->
         <h4 class="text-primary fw-bold mb-0">
             HIỆP HỘI CÔNG NGHỆ VÀ DỊCH VỤ SỐ VIỆT NAM
         </h4>
@@ -25,25 +23,62 @@
 
             <div class="collapse navbar-collapse justify-content-center" id="mainNavbar">
                 <ul class="navbar-nav">
-                <!-- Danh mục dropdown -->
+                    <!-- Danh mục dropdown -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle px-3" href="#" id="categoryDropdown" role="button"
                            data-bs-toggle="dropdown" aria-expanded="false">
                             Danh mục
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="categoryDropdown">
-                            <li><a class="dropdown-item" asp-controller="Post" asp-action="Create">Đăng tin</a></li>
+                            <li><a class="dropdown-item" asp-controller="Post" asp-action="CreatePost">Đăng tin</a></li>
                             <li><a class="dropdown-item" asp-controller="Documents" asp-action="Share">Chia sẻ tài liệu</a></li>
-                            <li><a class="dropdown-item" asp-controller="Admin" asp-action="Approve">Duyệt Tin / Tài Liệu</a></li>
+                            <li><a class="dropdown-item" asp-controller="Post" asp-action="pendingposts">Duyệt Tin / Tài Liệu</a></li>
+                            <li><a class="dropdown-item" asp-controller="Category" asp-action="Create">Tạo danh mục chung cho bài viết</a></li>
                         </ul>
                     </li>
+
                     <li class="nav-item"><a class="nav-link px-3" asp-controller="Home" asp-action="Index">Trang chủ</a></li>
-                    <li class="nav-item"><a class="nav-link px-3" asp-controller="News" asp-action="Index">Tin tức</a></li>
+                    <li class="nav-item"><a class="nav-link px-3" asp-controller="Post" asp-action="News">Tin tức</a></li>
                     <li class="nav-item"><a class="nav-link px-3" asp-controller="Events" asp-action="Index">Sự kiện</a></li>
                     <li class="nav-item"><a class="nav-link px-3" asp-controller="Documents" asp-action="Index">Tài liệu</a></li>
-                    <li class="nav-item"><a class="nav-link px-3" asp-controller="Auth" asp-action="Login">Đăng nhập</a></li>
+
+                    <!-- Vị trí nút đăng nhập -->
+                    <li class="nav-item">
+                        <a class="nav-link px-3" asp-controller="Auth" asp-action="Login" id="loginLink">Đăng nhập</a>
+                    </li>
+
+                    <!-- Nút đăng xuất (ẩn mặc định) -->
+                    <li class="nav-item">
+                        <a class="nav-link px-3 text-danger" href="#" id="logoutLink" style="display:none;">Đăng xuất</a>
+                    </li>
                 </ul>
             </div>
         </div>
     </nav>
 </header>
+
+<!-- SCRIPT XỬ LÝ HIỂN THỊ TÊN NGƯỜI DÙNG -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const fullName = localStorage.getItem("fullName");
+    const loginLink = document.getElementById("loginLink");
+    const logoutLink = document.getElementById("logoutLink");
+
+    // Nếu có tên người dùng => Đã đăng nhập
+    if (fullName && loginLink) {
+        loginLink.textContent = `Xin chào, ${fullName}`;
+        loginLink.href = "#"; // hoặc có thể dẫn đến trang hồ sơ sau này
+        logoutLink.style.display = "block";
+    }
+
+    // Xử lý khi click "Đăng xuất"
+    if (logoutLink) {
+        logoutLink.addEventListener("click", function (e) {
+            e.preventDefault();
+            localStorage.removeItem("jwtToken");
+            localStorage.removeItem("fullName");
+            window.location.href = "/auth/login";
+        });
+    }
+});
+</script>

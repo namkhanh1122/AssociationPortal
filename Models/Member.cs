@@ -9,7 +9,7 @@ namespace AssociationPortal.Models
     {
         [Key]
         [Column("member_id")]
-        public long MemberID { get; set; }
+        public long MemberId { get; set; }
 
         [Required, MaxLength(255)]
         [Column("full_name")]

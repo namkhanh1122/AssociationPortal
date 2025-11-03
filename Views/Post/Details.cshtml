@@ -1,0 +1,55 @@
+@model dynamic
+
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <a href="javascript:void(0);" id="increaseViewLink">
+            <img src="@Model.ThumbnailUrl" class="card-img-top" alt="Ảnh bài viết">
+        </a>
+        <div class="card-body">
+            <h3 class="text-primary">
+                <a href="javascript:void(0);" id="increaseViewTitle">@Model.PostTitle</a>
+            </h3>
+            <p class="text-muted">
+                <small>
+                    Danh mục: @Model.CategoryName |
+                    Tác giả: @Model.AuthorName |
+                    Ngày: @Model.ApprovedDate?.ToString("dd/MM/yyyy") |
+                    Lượt xem: <strong id="viewCount">@Model.ViewCount</strong>
+                </small>
+            </p>
+            <div class="mt-3">
+                @Html.Raw(Model.PostContent)
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            const postId = @Model.PostId;
+            const detailUrl = `/post/detail/${postId}`; // đường dẫn đến trang chi tiết bài viết
+
+            function increaseViewAndRedirect() {
+                $.ajax({
+                    url: '/post/increaseview',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ PostId: postId }),
+                    success: function () {
+                        let current = parseInt($("#viewCount").text());
+                        $("#viewCount").text(current + 1);
+                        window.location.href = detailUrl;
+                    },
+                    error: function (xhr) {
+                        console.error("Không thể cập nhật lượt xem:", xhr.responseText);
+                        window.location.href = detailUrl;
+                    }
+                });
+            }
+
+            // Khi người dùng click vào ảnh hoặc tiêu đề
+            $("#increaseViewLink, #increaseViewTitle").on("click", increaseViewAndRedirect);
+        });
+    </script>
+}

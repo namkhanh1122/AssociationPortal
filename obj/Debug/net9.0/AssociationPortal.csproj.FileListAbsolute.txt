@@ -230,3 +230,4 @@
 /Users/nguyennamkhanh/Documents/HOU /AssociationPortal/obj/Debug/net9.0/AssociationPortal.genruntimeconfig.cache
 /Users/nguyennamkhanh/Documents/HOU /AssociationPortal/obj/Debug/net9.0/ref/AssociationPortal.dll
 /Users/nguyennamkhanh/Documents/HOU /AssociationPortal/obj/Debug/net9.0/compressed/1e1sep2w0n-axsbqcoawv.gz
+/Users/nguyennamkhanh/Documents/HOU /AssociationPortal/bin/Debug/net9.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll

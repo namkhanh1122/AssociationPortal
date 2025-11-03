@@ -1,0 +1,91 @@
+@{
+    ViewData["Title"] = "Trang tin tức";
+}
+
+<div class="container my-4">
+    <div class="row">
+    
+        <div class="col-md-8">
+            <h4 class="fw-bold mb-3 border-bottom pb-2 text-primary">
+                🔥 Tin nổi bật
+            </h4>
+            <div id="featuredNews" class="row g-3">
+                <div class="text-muted">Đang tải...</div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <h4 class="fw-bold mb-3 border-bottom pb-2 text-success">
+                🆕 Tin mới nhất
+            </h4>
+            <ul id="latestNews" class="list-unstyled">
+                <li class="text-muted">Đang tải...</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+async function loadNews() {
+    try {
+        const res = await fetch('/post/get-news');
+        const data = await res.json();
+
+        const featured = data.filter(p => p.isFeatured === 1);
+        const latest = data.filter(p => !p.isFeatured);
+
+        // === Tin nổi bật ===
+        const featuredContainer = document.getElementById('featuredNews');
+        if (featured.length > 0) {
+            featuredContainer.innerHTML = featured.map(p => `
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <a href="/post/details/${p.postId}">
+                            <img src="${p.thumbnailUrl ?? '/images/default.jpg'}" 
+                                 class="card-img-top" 
+                                 alt="${p.postTitle}" 
+                                 style="height: 180px; object-fit: cover;">
+                        </a>
+                        <div class="card-body">
+                            <a href="/post/details/${p.postId}" class="text-decoration-none text-dark">
+                                <h6 class="card-title fw-semibold mb-1">${p.postTitle}</h6>
+                            </a>
+                            <p class="small text-muted mb-0">
+                                ${p.categoryName ?? ''} • ${p.viewCount} lượt xem • 
+                                ${new Date(p.approvedDate).toLocaleDateString('vi-VN')}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            featuredContainer.innerHTML = '<p class="text-muted">Không có tin nổi bật.</p>';
+        }
+
+        // === Tin mới ===
+        const latestContainer = document.getElementById('latestNews');
+        if (latest.length > 0) {
+            latestContainer.innerHTML = latest.map(p => `
+                <li class="mb-2">
+                    <a href="/post/details/${p.postId}" 
+                       class="text-dark text-decoration-none">
+                        ${p.postTitle}
+                    </a>
+                    <br>
+                    <small class="text-muted">
+                    ${p.viewCount} lượt xem • ${new Date(p.approvedDate).toLocaleDateString('vi-VN')}
+                    </small>
+                </li>
+            `).join('');
+        } else {
+            latestContainer.innerHTML = '<li class="text-muted">Không có tin mới.</li>';
+        }
+    } catch (err) {
+        console.error('Lỗi tải tin:', err);
+    }
+}
+
+loadNews();
+</script>
+}

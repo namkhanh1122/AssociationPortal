@@ -1,0 +1,103 @@
+@{
+    ViewData["Title"] = "Duyệt bài viết";
+}
+
+<h2 class="mb-3">Danh sách bài viết chờ duyệt</h2>
+
+<table class="table table-bordered" id="pendingTable">
+    <thead>
+        <tr>
+            <th>Tiêu đề</th>
+            <th>Tác giả</th>
+            <th>Danh mục</th>
+            <th>Ngày đăng</th>
+            <th>Thao tác</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<!-- Modal từ chối -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Từ chối bài viết</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <textarea id="rejectReason" class="form-control" placeholder="Nhập lý do từ chối..." rows="3"></textarea>
+                <input type="hidden" id="rejectPostId" />
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button class="btn btn-danger" id="confirmReject">Xác nhận từ chối</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Load danh sách bài viết chờ duyệt
+    async function loadPendingPosts() {
+        const res = await fetch('/post/pending');
+        const data = await res.json();
+
+        const tbody = document.querySelector('#pendingTable tbody');
+        tbody.innerHTML = '';
+
+        data.forEach(p => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${p.postTitle}</td>
+                <td>${p.authorName}</td>
+                <td>${p.categoryName}</td>
+                <td>${new Date(p.createdAt).toLocaleString()}</td>
+                <td>
+                    <button class="btn btn-success btn-sm" onclick="approvePost(${p.postId}, true)">Duyệt</button>
+                    <button class="btn btn-danger btn-sm" onclick="openRejectModal(${p.postId})">Từ chối</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Duyệt bài
+    async function approvePost(postId, approve) {
+        const formData = new FormData();
+        formData.append("postId", postId);
+        formData.append("approve", approve);
+
+        await fetch(`/post/approve?postId=${postId}&approve=${approve}`, {
+            method: 'POST'
+        });
+
+        alert("Đã duyệt bài viết!");
+        loadPendingPosts();
+    }
+
+    // Mở modal từ chối
+    function openRejectModal(postId) {
+        document.getElementById('rejectPostId').value = postId;
+        new bootstrap.Modal(document.getElementById('rejectModal')).show();
+    }
+
+    // Xác nhận từ chối
+    document.getElementById('confirmReject').addEventListener('click', async () => {
+        const postId = document.getElementById('rejectPostId').value;
+        const reason = document.getElementById('rejectReason').value;
+
+        await fetch(`/post/approve?postId=${postId}&approve=false&reason=${encodeURIComponent(reason)}`, {
+            method: 'POST'
+        });
+
+        alert("Đã từ chối bài viết!");
+        document.getElementById('rejectReason').value = '';
+        bootstrap.Modal.getInstance(document.getElementById('rejectModal')).hide();
+        loadPendingPosts();
+    });
+
+    loadPendingPosts();
+</script>
+}
