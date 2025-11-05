@@ -19,6 +19,8 @@ namespace AssociationPortal.Models
 
         [Column("licensed")]
         public int Licensed { get; set; }
+
+        public virtual Permision Permision { get; set; }
         
     }
 }

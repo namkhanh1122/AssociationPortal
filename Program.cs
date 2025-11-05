@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using AssociationPortal.Data;
 using System.Text;
+using Microsoft.AspNetCore.Hosting; 
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +46,11 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<PermissionService>();
 
+// ĐĂNG KÝ HttpClient
+builder.Services.AddHttpClient();
+
+// ĐĂNG KÝ IWebHostEnvironment
+builder.Services.AddSingleton<IWebHostEnvironment>(builder.Environment);
 
 var app = builder.Build();
 
@@ -69,5 +75,9 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
+
+
+//app.MapControllers(); // Để test API
+
 
 app.Run();

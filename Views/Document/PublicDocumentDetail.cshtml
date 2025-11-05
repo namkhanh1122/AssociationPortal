@@ -1,0 +1,35 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Tài liệu chi tiết - Association Portal";
+    var documentId = ViewData["DocumentId"];
+}
+
+<h2>📄 Chi tiết tài liệu</h2>
+
+<div id="documentDetail" class="mt-3"></div>
+
+<a href="/document/listpublic" class="btn btn-secondary mt-3">⬅ Quay lại danh sách</a>
+
+<script>
+    async function loadDocumentDetail() {
+        const id = '@documentId';
+        const res = await fetch(`/document/public/${id}`);
+
+        if (!res.ok) {
+            document.getElementById('documentDetail').innerHTML =
+                `<p class="text-danger">Không tìm thấy tài liệu hoặc chưa được duyệt.</p>`;
+            return;
+        }
+
+        const doc = await res.json();
+        document.getElementById('documentDetail').innerHTML = `
+            <h4>${doc.documentTitle}</h4>
+            <p><strong>Tác giả:</strong> ${doc.authorName}</p>
+            <p><strong>Danh mục:</strong> ${doc.categoryName}</p>
+            <p><strong>Ngày duyệt:</strong> ${new Date(doc.approvedDate).toLocaleDateString()}</p>
+            <a href="${doc.filePath}" target="_blank" class="btn btn-primary">📥 Tải xuống tài liệu</a>
+        `;
+    }
+
+    loadDocumentDetail();
+</script>

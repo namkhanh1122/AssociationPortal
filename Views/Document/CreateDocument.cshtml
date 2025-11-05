@@ -1,0 +1,113 @@
+z@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Tải lên tài liệu - Association Portal";
+}
+
+<div class="container mt-5">
+    <h2 class="text-center text-primary mb-4">📄 Tải lên tài liệu mới</h2>
+
+    <form id="createDocumentForm" class="card p-4 shadow-sm border-0 rounded-3" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label class="form-label">Tiêu đề tài liệu</label>
+            <input type="text" class="form-control" id="docTitle" placeholder="Nhập tiêu đề..." required />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Danh mục</label>
+            <select id="categorySelect" class="form-select" required>
+                <option value="">-- Chọn danh mục --</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Chọn file</label>
+            <input type="file" class="form-control" id="docFile" required />
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn btn-primary w-100">
+            <span id="btnText">Tải lên</span>
+            <span id="btnSpinner" class="spinner-border spinner-border-sm ms-2 d-none"></span>
+        </button>
+    </form>
+
+    <div id="resultMessage" class="mt-4"></div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+    const token = localStorage.getItem("jwtToken");
+    if (!token) {
+        showMessage("Bạn cần đăng nhập để tải lên tài liệu!", "warning");
+        setTimeout(() => window.location.href = "/auth/login", 1500);
+        return;
+    }
+
+    // Load danh mục từ API
+    try {
+        const res = await fetch("/document/categories", {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        const categories = await res.json();
+        const select = document.getElementById("categorySelect");
+        categories.forEach(c => {
+            select.innerHTML += `<option value="${c.categoryId}">${c.categoryName}</option>`;
+        });
+    } catch (err) {
+        showMessage("Không thể tải danh mục!", "danger");
+    }
+
+    const fileInput = document.getElementById("docFile");
+
+    document.getElementById("createDocumentForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById("submitBtn");
+        const btnText = document.getElementById("btnText");
+        const btnSpinner = document.getElementById("btnSpinner");
+        submitBtn.disabled = true;
+        btnText.textContent = "Đang tải lên...";
+        btnSpinner.classList.remove("d-none");
+
+        const formData = new FormData();
+        formData.append("title", document.getElementById("docTitle").value.trim());
+        formData.append("categoryId", document.getElementById("categorySelect").value);
+        formData.append("file", fileInput.files[0]);
+
+        try {
+            const res = await fetch("/document/upload", {
+                method: "POST",
+                headers: { "Authorization": "Bearer " + token },
+                body: formData
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                showMessage(data.message || "🎉 Tải lên thành công! Đang chờ duyệt.", "success");
+                document.getElementById("createDocumentForm").reset();
+            } else {
+                showMessage(data.message || "Lỗi khi tải lên!", "danger");
+            }
+        } catch (err) {
+            showMessage("Lỗi kết nối tới server!", "danger");
+        } finally {
+            submitBtn.disabled = false;
+            btnText.textContent = "Tải lên";
+            btnSpinner.classList.add("d-none");
+        }
+    });
+
+    function showMessage(message, type) {
+        const msgDiv = document.getElementById("resultMessage");
+        msgDiv.innerHTML = `
+            <div class="alert alert-${type} alert-dismissible fade show shadow-sm" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        setTimeout(() => {
+            const alert = bootstrap.Alert.getOrCreateInstance(msgDiv.querySelector('.alert'));
+            alert.close();
+        }, 4000);
+    }
+});
+</script>

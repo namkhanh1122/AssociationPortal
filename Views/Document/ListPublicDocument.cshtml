@@ -1,0 +1,35 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Những tài liệu chia sẻ - Association Portal";
+}
+
+<h2 class="mb-3">📚 Danh sách tài liệu đã duyệt</h2>
+
+<div id="documentList" class="list-group"></div>
+
+<script>
+    async function loadDocuments() {
+        const res = await fetch('/document/public');
+        const docs = await res.json();
+
+        const container = document.getElementById('documentList');
+        if (!docs || docs.length === 0) {
+            container.innerHTML = `<p class="text-muted">Chưa có tài liệu nào được duyệt.</p>`;
+            return;
+        }
+
+        container.innerHTML = docs.map(d => `
+            <a href="/document/detail/${d.documentId}" 
+               class="list-group-item list-group-item-action flex-column align-items-start">
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">${d.documentTitle}</h5>
+                    <small>${new Date(d.approvedDate).toLocaleDateString()}</small>
+                </div>
+                <p class="mb-1">Danh mục: ${d.categoryName}</p>
+                <small>Tác giả: ${d.authorName}</small>
+            </a>
+        `).join('');
+    }
+
+    loadDocuments();
+</script>

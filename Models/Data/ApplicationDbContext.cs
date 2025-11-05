@@ -28,5 +28,6 @@ namespace AssociationPortal.Data
 
         public DbSet<PermissionResult> PermissionResults { get; set; }
 
+
     }
 }

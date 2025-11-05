@@ -82,7 +82,7 @@ public async Task<IActionResult> CreatePost([FromBody] Post model)
         // --- Gọi stored procedure ---
         var parameters = new[]
         {
-            new SqlParameter("@MemberId", memberId), // ✅ gán tự động từ token
+            new SqlParameter("@MemberId", memberId),// gán tự động từ token
             new SqlParameter("@CategoryId", model.CategoryId ?? (object)DBNull.Value),
             new SqlParameter("@Title", model.PostTitle),
             new SqlParameter("@Content", model.PostContent),

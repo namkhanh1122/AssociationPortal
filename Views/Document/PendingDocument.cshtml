@@ -1,0 +1,165 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Duyệt tài liệu - Association Portal";
+}
+
+<div class="container mt-5">
+    <h2 class="text-center text-primary mb-4">📄 Danh sách tài liệu chờ duyệt</h2>
+
+    <div id="docsTableContainer" class="table-responsive">
+        <table class="table table-bordered table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>STT</th>
+                    <th>Tiêu đề</th>
+                    <th>Danh mục</th>
+                    <th>Ngày tải lên</th>
+                    <th>Người đăng</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="docsTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Preview -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Xem tài liệu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="previewContent">
+                <p>Đang tải...</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="resultMessage" class="mt-4"></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+    const token = localStorage.getItem("jwtToken");
+    if (!token) {
+        showMessage("Bạn cần đăng nhập!", "warning");
+        setTimeout(() => window.location.href = "/auth/login", 1500);
+        return;
+    }
+
+    const loadDocs = async () => {
+        const res = await fetch("/document/pending", {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        const docs = await res.json();
+        console.log("Dữ liệu trả về từ API:", docs);
+
+        const tbody = document.getElementById("docsTableBody");
+        tbody.innerHTML = "";
+        docs.forEach((d, idx) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${idx + 1}</td>
+                <td>${d.documentTitle}</td>
+                <td>${d.categoryName || ""}</td>
+                <td>${d.createdAt ? new Date(d.createdAt).toLocaleString() : ""}</td>
+                <td>${d.authorName || ""}</td>
+                <td>
+                    <button class="btn btn-sm btn-info me-2 previewBtn" data-id="${d.documentId}">Preview</button>
+                    <button class="btn btn-sm btn-success me-2 approveBtn" data-id="${d.documentId}">Duyệt</button>
+                    <button class="btn btn-sm btn-danger rejectBtn" data-id="${d.documentId}">Từ chối</button>
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+
+        // Preview tài liệu
+        document.querySelectorAll(".previewBtn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const id = btn.dataset.id;
+                console.log("Fetching document id =", id);
+                const res = await fetch(`/document/${id}`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                const doc = await res.json();
+                const preview = document.getElementById("previewContent");
+
+                if (doc.filePath.endsWith(".pdf")) {
+                                    preview.innerHTML = `
+                                        <p><strong>Tiêu đề:</strong> ${doc.documentTitle}</p>
+                                        <p><strong>Người đăng:</strong> ${doc.authorName}</p>
+                                        <p><strong>Danh mục:</strong> ${doc.categoryName}</p>
+                                        <iframe src="${doc.filePath}" style="width:100%;height:500px;" frameborder="0"></iframe>`;
+                                
+
+                } else {
+                    preview.innerHTML = `<p><strong>Tiêu đề:</strong> ${doc.documentTitle}</p>
+                                         <p><strong>Người đăng:</strong> ${doc.authorName}</p>
+                                         <p><strong>Danh mục:</strong> ${doc.categoryName}</p>
+                                         <a href="${doc.filePath}" target="_blank" class="btn btn-primary">Tải xuống</a>`;
+                }
+
+                const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+                modal.show();
+            });
+        });
+
+        // Duyệt tài liệu
+        document.querySelectorAll(".approveBtn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const id = btn.dataset.id;
+                if (confirm("Bạn có chắc muốn duyệt tài liệu này?")) {
+                    approveDocument(id, true);
+                }
+            });
+        });
+
+        // Từ chối tài liệu
+        document.querySelectorAll(".rejectBtn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const id = btn.dataset.id;
+                let reason = "";
+                while (!reason) {
+                    reason = prompt("Nhập lý do từ chối (bắt buộc):");
+                    if (reason === null) return; // hủy
+                }
+                approveDocument(id, false, reason);
+            });
+        });
+    };
+
+    const approveDocument = async (docId, approve, reason = null) => {
+        const res = await fetch(`/document/approve/${docId}`, {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ approve, reason })
+        });
+        const data = await res.json();
+        showMessage(data.message, approve ? "success" : "danger");
+        loadDocs();
+    };
+
+    const showMessage = (message, type) => {
+        const msgDiv = document.getElementById("resultMessage");
+        msgDiv.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>`;
+        setTimeout(() => {
+            const alert = bootstrap.Alert.getOrCreateInstance(msgDiv.querySelector('.alert'));
+            alert.close();
+        }, 4000);
+    };
+
+    loadDocs();
+});
+</script>

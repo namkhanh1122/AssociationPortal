@@ -31,17 +31,17 @@
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="categoryDropdown">
                             <li><a class="dropdown-item" asp-controller="Post" asp-action="CreatePost">Đăng tin</a></li>
-                            <li><a class="dropdown-item" asp-controller="Documents" asp-action="Share">Chia sẻ tài liệu</a></li>
+                            <li><a class="dropdown-item" asp-controller="Document" asp-action="CreateDocument">Chia sẻ tài liệu</a></li>
                             <li><a class="dropdown-item" asp-controller="Post" asp-action="pendingposts">Duyệt Tin</a></li>
-                            <li><a class="dropdown-item" asp-controller="Document" asp-action="pendingdocument">Duyệt Tài Liệu</a></li>
-                            <li><a class="dropdown-item" asp-controller="Category" asp-action="Create">Tạo danh mục chung cho bài viết</a></li>
+                            <li><a class="dropdown-item" asp-controller="document" asp-action="pendingdocument">Duyệt Tài Liệu</a></li>
+                            <li><a class="dropdown-item" asp-controller="Category" asp-action="Create">Tạo danh mục chung </a></li>
                         </ul>
                     </li>
 
                     <li class="nav-item"><a class="nav-link px-3" asp-controller="Home" asp-action="Index">Trang chủ</a></li>
                     <li class="nav-item"><a class="nav-link px-3" asp-controller="Post" asp-action="News">Tin tức</a></li>
                     <li class="nav-item"><a class="nav-link px-3" asp-controller="Events" asp-action="Index">Sự kiện</a></li>
-                    <li class="nav-item"><a class="nav-link px-3" asp-controller="Documents" asp-action="Index">Tài liệu</a></li>
+                    <li class="nav-item"><a class="nav-link px-3" asp-controller="document" asp-action="listpublicdocument">Tài liệu</a></li>
 
                     <!-- Vị trí nút đăng nhập -->
                     <li class="nav-item">

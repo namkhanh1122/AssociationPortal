@@ -29,5 +29,7 @@ namespace AssociationPortal.Models
 
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public virtual ICollection<MemberPermision> MemberPermisions { get; set; } = new List<MemberPermision>();
     }
 }

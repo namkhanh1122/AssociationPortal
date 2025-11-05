@@ -30,4 +30,9 @@ public class PermissionService
 
         return permissions;
     }
+     public async Task<bool> HasPermissionAsync(long memberId, int actionCode)
+    {
+        var permissions = await GetPermissionsByMemberIdAsync(memberId);
+        return permissions.Contains(actionCode);
+    }
 }
